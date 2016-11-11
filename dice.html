@@ -1,0 +1,186 @@
+<html>
+
+<head>
+
+<style>
+    .die-count { font-weight: bold; }
+</style>
+
+<script language="javascript" type="text/javascript">
+function asNum(id) {
+    return +(document.getElementById(id).innerText);
+}
+
+function adj(elementId, value, canGoNegative) {
+    var ele = document.getElementById(elementId);
+
+    var before = asNum(elementId);
+    var after = before + value;
+
+    if (canGoNegative || after >= 0) {
+        ele.innerText = after;
+    }
+}
+
+function adjNum(elementId, value) {
+    var ele = document.getElementById(elementId);
+    ele.valueAsNumber = ele.valueAsNumber + value;
+}
+
+function oneTo(max) {
+    var a = Array.from(Array(max + 1).keys());
+    a.shift();
+    return a;
+}
+
+function incr(totalDice, indexes) {
+    var positionToIncrement = indexes.length - 1;
+
+    while (positionToIncrement >= 0) {
+        var max = totalDice[positionToIncrement].length - 1;
+        if (indexes[positionToIncrement] < max) {
+            indexes[positionToIncrement] += 1;
+            return true;
+        }
+
+        indexes[positionToIncrement] = 0;
+        positionToIncrement -= 1;
+    }
+    return false;
+}
+
+function addDice(dice, maxDieValue) {
+    var numDice = asNum(`d${maxDieValue}-count`);
+    for (var i = 0; i < numDice; i++) {
+        dice.push(oneTo(maxDieValue));
+    }
+}
+
+function roll() {
+    var sizes = [ 4, 6, 8, 10, 12, 20 ];
+    var dice = [];
+
+    sizes.forEach(size => addDice(dice, size));
+
+    var totalDice = dice.length;
+    var diceIndexes = Array(totalDice).fill(0);
+    var results = [];
+    var staticBonus = asNum('static-value');
+
+    do {
+        var result = staticBonus;
+        for (var i = 0; i < totalDice; i++) {
+            var dieIndex = diceIndexes[i];
+            result += dice[i][dieIndex];
+        }
+        results.push(result);
+    } while (incr(dice, diceIndexes));
+
+    var successes = 0;
+    var failures = 0;
+    var target = document.getElementById('target-value').valueAsNumber;
+
+    for (var i = 0; i < results.length; i++) {
+        if (results[i] >= target) {
+            successes += 1;
+        } else {
+            failures += 1;
+        }
+    }
+
+    var resultString;
+    if (failures === 0) {
+        resultString = `100% (${successes} successes)`;
+    } else if (successes === 0) {
+        resultString = `0% (${failures} failures)`;
+    } else {
+        var ratio = successes / (successes + failures);
+        var percent = 100 * ratio;
+        resultString = `${Math.trunc(percent)}% (${successes}/${successes + failures})`;
+    }
+
+    var outcome = document.getElementById('outcome');
+    outcome.innerText = resultString;
+}
+</script>
+
+</head>
+
+<body>
+
+  <div id="static">
+    <button id="static-dec" onclick="adj('static-value', -1, true)" class="decr">-</button>
+    /
+    <button id="static-inc" onclick="adj('static-value', 1, true)" class="incr">+</button>
+    <span id="static-value" class="die-count">3</span>
+    static
+  </div>
+
+  <div id="d4">
+    <button id="d4-dec" onclick="adj('d4-count', -1)" class="decr">-</button>
+    /
+    <button id="d4-inc" onclick="adj('d4-count', 1)" class="incr">+</button>
+    <span id="d4-count" class="die-count">0</span>
+    d4
+  </div>
+
+  <div id="d6">
+    <button id="d6-dec" onclick="adj('d6-count', -1)" class="decr">-</button>
+    /
+    <button id="d6-inc" onclick="adj('d6-count', 1)" class="incr">+</button>
+    <span id="d6-count" class="die-count">0</span>
+    d6
+  </div>
+
+  <div id="d8">
+    <button id="d8-dec" onclick="adj('d8-count', -1)" class="decr">-</button>
+    /
+    <button id="d8-inc" onclick="adj('d8-count', 1)" class="incr">+</button>
+    <span id="d8-count" class="die-count">0</span>
+    d8
+  </div>
+
+  <div id="d10">
+    <button id="d10-dec" onclick="adj('d10-count', -1)" class="decr">-</button>
+    /
+    <button id="d10-inc" onclick="adj('d10-count', 1)" class="incr">+</button>
+    <span id="d10-count" class="die-count">0</span>
+    d10
+  </div>
+
+  <div id="d12">
+    <button id="d12-dec" onclick="adj('d12-count', -1)" class="decr">-</button>
+    /
+    <button id="d12-inc" onclick="adj('d12-count', 1)" class="incr">+</button>
+    <span id="d12-count" class="die-count">0</span>
+    d12
+  </div>
+
+  <div id="d20">
+    <button id="d20-dec" onclick="adj('d20-count', -1)" class="decr">-</button>
+    /
+    <button id="d20-inc" onclick="adj('d20-count', 1)" class="incr">+</button>
+    <span id="d20-count" class="die-count">0</span>
+    d20
+  </div>
+
+  <br />
+
+  <div id="target">
+    <button id="target-dec" onclick="adjNum('target-value', -1)" class="decr">-</button>
+    /
+    <button id="target-inc" onclick="adjNum('target-value', 1)" class="incr">+</button>
+    <input id="target-value" type="number" min="0" max="99" style="width: 4em;" value="8" />
+    target
+  </div>
+
+  <br />
+
+  <div id="result">
+    <button id="roll" onclick="roll()">Roll</button>
+    <span id="outcome"></span>
+  </div>
+
+</body>
+
+</html>
