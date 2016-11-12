@@ -102,7 +102,7 @@ function incr(totalDice, indexes) {
 
 function getAllPossibleResults(dice) {
     var diceIndexes = Array(dice.length).fill(0);
-    var results = [];
+    var results = {};
     var staticBonus = asNum('static-value');
 
     do {
@@ -111,24 +111,28 @@ function getAllPossibleResults(dice) {
             var dieIndex = diceIndexes[i];
             result += dice[i][dieIndex];
         }
-        results.push(result);
+        results[result] = 1 + (results[result] || 0);
     } while (incr(dice, diceIndexes));
 
 	return results;
 }
 
-function displayResults(results) {
-    var successes = 0;
-	var total = results.length;
+function displayResults(resultsCount) {
     var target = document.getElementById('target-value').valueAsNumber;
-	results.forEach(r => { if (r >= target) { successes++; } });
+
+	var results = Object.keys(resultsCount).sort((a, b) => a - b);
+	console.log(results);
 
     var outcome = document.getElementById('outcome');
-    if (successes === total) {
+	if (results[0] >= target) {
         outcome.innerText = "Automatic";
-    } else if (successes === 0) {
-        outcome.innerText = "Impossible";
-    } else {
+	} else if (results[results.length - 1] < target) {
+		outcome.innerText = "Impossible";
+	} else {
+		var total = 0;
+		results.forEach(r => total += resultsCount[r]);
+		var successes = 0;
+		results.filter(r => r >= target).forEach(r => successes += resultsCount[r]);
         outcome.innerText =
 			`${Math.trunc(100 * successes / total)}% (${successes}/${total})`;
     }
