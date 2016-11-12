@@ -34,13 +34,6 @@ function oneTo(max) {
     return a;
 }
 
-function addDice(dice, maxDieValue) {
-    var numDice = asNum(`d${maxDieValue}-count`);
-    for (var i = 0; i < numDice; i++) {
-        dice.push(oneTo(maxDieValue));
-    }
-}
-
 function dice() {
 	return [
 		'd4-count',
@@ -62,25 +55,30 @@ function saveState() {
 	document.cookie = `target-value=${targetValue}`;
 }
 
-function loadState() {
-	// "foo=bar; baz=qux" => "{'foo':'bar','baz':'qux'}"
-	var c = document.cookie;
-	var cookieString = c
-    	.replace(/([^=]+)=([^; \t]+)[; \t]*/g, ',"$1":$2') // Leading comma
-    	.substr(1); // Remove leading comma
-	cookieString = '{' + cookieString + '}';
-	var cookies = JSON.parse(cookieString);
-	dice().forEach(id =>
-        document.getElementById(id).innerText = cookies[id] || 0);
-	document.getElementById('target-value').value =
-		cookies['target-value'] || 0;
+function fromCookie(id) {
+	var re = new RegExp(`${id}=(\\w+)`);
+	var match = document.cookie.match(re);
+	return match ? match[1] : 0;
 }
 
+function loadState() {
+	// "foo=bar; baz=qux" => "{'foo':'bar','baz':'qux'}"
+	dice().forEach(id =>
+		document.getElementById(id).innerText = fromCookie(id));
+
+	document.getElementById('target-value').value = fromCookie('target-value');
+}
+
+function addDice(dice, maxDieValue) {
+    var numDice = asNum(`d${maxDieValue}-count`);
+    for (var i = 0; i < numDice; i++) {
+        dice.push(oneTo(maxDieValue));
+    }
+}
 
 function assembleDice() {
     var sizes = [ 4, 6, 8, 10, 12, 20 ];
     var dice = [];
-
     sizes.forEach(size => addDice(dice, size));
 	return dice;
 }
