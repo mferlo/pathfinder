@@ -24,6 +24,7 @@ function adj(elementId, value, canGoNegative) {
 
 function adjNum(elementId, value) {
     var ele = document.getElementById(elementId);
+	// Doesn't work in IE. Meh.
     ele.valueAsNumber = ele.valueAsNumber + value;
 }
 
@@ -69,8 +70,10 @@ function loadState() {
     	.substr(1); // Remove leading comma
 	cookieString = '{' + cookieString + '}';
 	var cookies = JSON.parse(cookieString);
-	dice().forEach(id => document.getElementById(id).innerText = cookies[id]);
-	document.getElementById('target-value').value = cookies['target-value'];
+	dice().forEach(id =>
+        document.getElementById(id).innerText = cookies[id] || 0);
+	document.getElementById('target-value').value =
+		cookies['target-value'] || 0;
 }
 
 
