@@ -33,22 +33,6 @@ function oneTo(max) {
     return a;
 }
 
-function incr(totalDice, indexes) {
-    var positionToIncrement = indexes.length - 1;
-
-    while (positionToIncrement >= 0) {
-        var max = totalDice[positionToIncrement].length - 1;
-        if (indexes[positionToIncrement] < max) {
-            indexes[positionToIncrement] += 1;
-            return true;
-        }
-
-        indexes[positionToIncrement] = 0;
-        positionToIncrement -= 1;
-    }
-    return false;
-}
-
 function addDice(dice, maxDieValue) {
     var numDice = asNum(`d${maxDieValue}-count`);
     for (var i = 0; i < numDice; i++) {
@@ -56,54 +40,107 @@ function addDice(dice, maxDieValue) {
     }
 }
 
-function roll() {
+function dice() {
+	return [
+		'd4-count',
+		'd6-count',
+		'd8-count',
+		'd10-count',
+		'd12-count',
+		'd20-count',
+		'static-value'
+	];
+}
+
+window.onload = loadState;
+
+function saveState() {
+	dice().forEach(d => document.cookie = `${d}=${asNum(d)}`);
+
+	var targetValue = document.getElementById('target-value').value;
+	document.cookie = `target-value=${targetValue}`;
+}
+
+function loadState() {
+	// "foo=bar; baz=qux" => "{'foo':'bar','baz':'qux'}"
+	var c = document.cookie;
+	var cookieString = c
+    	.replace(/([^=]+)=([^; \t]+)[; \t]*/g, ',"$1":$2') // Leading comma
+    	.substr(1); // Remove leading comma
+	cookieString = '{' + cookieString + '}';
+	var cookies = JSON.parse(cookieString);
+	dice().forEach(id => document.getElementById(id).innerText = cookies[id]);
+	document.getElementById('target-value').value = cookies['target-value'];
+}
+
+
+function assembleDice() {
     var sizes = [ 4, 6, 8, 10, 12, 20 ];
     var dice = [];
 
     sizes.forEach(size => addDice(dice, size));
+	return dice;
+}
 
-    var totalDice = dice.length;
-    var diceIndexes = Array(totalDice).fill(0);
+function incr(totalDice, indexes) {
+	// Try to increment the "right-most" element.
+	// If it's at max, "carry" to the one on the left.
+    var i = indexes.length - 1;
+    while (i >= 0) {
+        var max = totalDice[i].length - 1;
+        if (indexes[i] < max) {
+            indexes[i] += 1;
+            return true;
+        }
+
+        indexes[i] = 0;
+        i -= 1;
+    }
+    return false;
+}
+
+function getAllPossibleResults(dice) {
+    var diceIndexes = Array(dice.length).fill(0);
     var results = [];
     var staticBonus = asNum('static-value');
 
     do {
         var result = staticBonus;
-        for (var i = 0; i < totalDice; i++) {
+        for (var i = 0; i < dice.length; i++) {
             var dieIndex = diceIndexes[i];
             result += dice[i][dieIndex];
         }
         results.push(result);
     } while (incr(dice, diceIndexes));
 
+	return results;
+}
+
+function displayResults(results) {
     var successes = 0;
-    var failures = 0;
+	var total = results.length;
     var target = document.getElementById('target-value').valueAsNumber;
-
-    for (var i = 0; i < results.length; i++) {
-        if (results[i] >= target) {
-            successes += 1;
-        } else {
-            failures += 1;
-        }
-    }
-
-    var resultString;
-    if (failures === 0) {
-        resultString = `100% (${successes} successes)`;
-    } else if (successes === 0) {
-        resultString = `0% (${failures} failures)`;
-    } else {
-        var ratio = successes / (successes + failures);
-        var percent = 100 * ratio;
-        resultString = `${Math.trunc(percent)}% (${successes}/${successes + failures})`;
-    }
+	results.forEach(r => { if (r >= target) { successes++; } });
 
     var outcome = document.getElementById('outcome');
-    outcome.innerText = resultString;
+    if (successes === total) {
+        outcome.innerText = "Automatic";
+    } else if (successes === 0) {
+        outcome.innerText = "Impossible";
+    } else {
+        outcome.innerText =
+			`${Math.trunc(100 * successes / total)}% (${successes}/${total})`;
+    }
 }
-</script>
 
+function roll() {
+	saveState();
+	var dice = assembleDice();
+	var results = getAllPossibleResults(dice);
+	displayResults(results);
+}
+
+</script>
 </head>
 
 <body>
