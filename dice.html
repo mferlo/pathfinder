@@ -72,7 +72,7 @@ function loadState() {
 function addDice(dice, maxDieValue) {
     var numDice = asNum(`d${maxDieValue}-count`);
     for (var i = 0; i < numDice; i++) {
-        dice.push(oneTo(maxDieValue));
+        dice.push(maxDieValue);
     }
 }
 
@@ -83,66 +83,67 @@ function assembleDice() {
 	return dice;
 }
 
-function incr(totalDice, indexes) {
-	// Try to increment the "right-most" element.
-	// If it's at max, "carry" to the one on the left.
-    var i = indexes.length - 1;
-    while (i >= 0) {
-        var max = totalDice[i].length - 1;
-        if (indexes[i] < max) {
-            indexes[i] += 1;
-            return true;
-        }
-
-        indexes[i] = 0;
-        i -= 1;
-    }
-    return false;
+function cannotWin(dice, target, bonus) {
+	var bestRoll = dice.reduce((x, y) => x + y, 0);
+	return bestRoll + bonus < target;
 }
 
-function getAllPossibleResults(dice) {
-    var diceIndexes = Array(dice.length).fill(0);
-    var results = {};
-    var staticBonus = asNum('static-value');
+function cannotLose(dice, target, bonus) {
+	var worstRoll = dice.length;
+	return worstRoll + bonus >= target;
+}
 
-    do {
-        var result = staticBonus;
-        for (var i = 0; i < dice.length; i++) {
-            var dieIndex = diceIndexes[i];
-            result += dice[i][dieIndex];
-        }
-        results[result] = 1 + (results[result] || 0);
-    } while (incr(dice, diceIndexes));
-
+function rollAdditionalDie(oldResults, die) {
+	var results = {};
+	var oldKeys = Object.keys(oldResults);
+	for (var i = 0; i < oldKeys.length; i++) {
+		var oldKey = Number(oldKeys[i]);
+		var oldValue = oldResults[oldKey];
+		for (var d = 1; d <= die; d++) {
+			var curKey = oldKey + d;
+			var curValue = results[curKey] || 0;
+			results[curKey] = curValue + oldValue;
+		}
+	}
 	return results;
 }
 
-function displayResults(resultsCount) {
-    var target = document.getElementById('target-value').valueAsNumber;
+function getNonTrivialResult(dice, target, bonus) {
+	var results = {};
+	var firstDie = dice.shift();
+	for (var i = 1; i <= firstDie; i++) {
+		results[i] = 1;
+	}
 
-	var results = Object.keys(resultsCount).sort((a, b) => a - b);
-	console.log(results);
+	for (var i = 0; i < dice.length; i++) {
+		results = rollAdditionalDie(results, dice[i]);
+	}
 
-    var outcome = document.getElementById('outcome');
-	if (results[0] >= target) {
-        outcome.innerText = "Automatic";
-	} else if (results[results.length - 1] < target) {
-		outcome.innerText = "Impossible";
-	} else {
-		var total = 0;
-		results.forEach(r => total += resultsCount[r]);
-		var successes = 0;
-		results.filter(r => r >= target).forEach(r => successes += resultsCount[r]);
-        outcome.innerText =
-			`${Math.trunc(100 * successes / total)}% (${successes}/${total})`;
-    }
+	var successes = 0;
+	Object.keys(results).forEach(r => {
+		if (Number(r) + bonus >= target) {
+			successes += results[r];
+		}
+	});
+	var total = Object.values(results).reduce((x, y) => x + y, 0);
+	return `${Math.trunc(100 * successes / total)}% (${successes}/${total})`;
 }
 
 function roll() {
 	saveState();
+
 	var dice = assembleDice();
-	var results = getAllPossibleResults(dice);
-	displayResults(results);
+	var target = document.getElementById('target-value').valueAsNumber;
+	var bonus = asNum('static-value');
+
+	var outcome = document.getElementById('outcome');
+	if (cannotWin(dice, target, bonus)) {
+		outcome.innerText = "Impossible";
+	} else if (cannotLose(dice, target, bonus)) {
+		outcome.innerText = "Automatic";
+	} else {
+		outcome.innerText = getNonTrivialResult(dice, target, bonus);
+	}
 }
 
 </script>
